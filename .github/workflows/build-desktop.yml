@@ -38,15 +38,17 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           
       - name: Prepare release file
-        shell: bash
+        shell: pwsh
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
-          MSI_PATH=$(find desktop/src-tauri/target/release/bundle/msi -name "*.msi" | head -1)
-          if [ -f "$MSI_PATH" ]; then
-            mkdir -p release
-            zip release/notes-desktop_${VERSION}_x86_64-pc-windows-msvc.msi.zip "$MSI_PATH"
-            echo "Created: release/notes-desktop_${VERSION}_x86_64-pc-windows-msvc.msi.zip"
-          fi
+          $VERSION = (Get-Content desktop/package.json | ConvertFrom-Json).version
+          $MSI = Get-ChildItem -Path "desktop/src-tauri/target/release/bundle/msi" -Name "*.msi" | Select-Object -First 1
+          if ($MSI) {
+            New-Item -ItemType Directory -Path "release" -Force | Out-Null
+            $MSI_PATH = "desktop/src-tauri/target/release/bundle/msi/$MSI"
+            $ZIP_NAME = "notes-desktop_${VERSION}_x86_64-pc-windows-msvc.msi.zip"
+            Compress-Archive -Path $MSI_PATH -DestinationPath "release/$ZIP_NAME" -Force
+            Write-Host "Created: release/$ZIP_NAME"
+          }
           
       - name: Upload to server
         env:
