@@ -25,7 +25,7 @@
     "updater": {
       "active": true,
       "endpoints": [
-        "http://updates.vamare.pl/updates/{{target}}/{{arch}}/{{current_version}}"
+        "http://api.vamare.pl/updates/{{target}}/{{arch}}/{{current_version}}"
       ],
       "dialog": true,
       "pubkey": "dW5zdXBwb3J0ZWQ=",
