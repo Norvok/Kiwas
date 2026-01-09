@@ -367,7 +367,7 @@ async def check_update(target: str, arch: str, current_version: str):
     updates_dir = Path(__file__).parent.parent / "updates" / "releases"
     
     # Wersja z aplikacji - zmień na aktualną gdy będziesz tworzyć nowe builde
-    latest_version = "0.2.0"
+    latest_version = "0.2.1"
     
     # Jeśli klient ma taką samą wersję, nie ma co aktualizować
     if current_version >= latest_version:
