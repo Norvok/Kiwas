@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+*.egg-info/
+.env
+
+# Node
+node_modules/
+dist/
+.DS_Store
+
+# Rust/Tauri
+desktop/src-tauri/target/
+desktop/src-tauri/Cargo.lock
+
+# Build outputs
+*.msi
+*.exe
+*.dmg
+*.deb
+*.AppImage
+desktop/src-tauri/target/
+desktop/dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Updates releases (opcjonalnie - jeśli chcesz wrzucać ready builds do repo)
+# updates/releases/*.zip
+# updates/releases/*.msi

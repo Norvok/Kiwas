@@ -1,0 +1,10 @@
+{
+  "$schema": "https://schema.tauri.app/capabilities/2",
+  "identifier": "default",
+  "description": "Default capabilities for the application",
+  "platforms": ["linux", "macOS", "windows"],
+  "permissions": [
+    "updater:default",
+    "process:default"
+  ]
+}

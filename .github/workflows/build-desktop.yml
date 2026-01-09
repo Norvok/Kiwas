@@ -1,0 +1,67 @@
+name: Build Desktop App
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'desktop/**'
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        
+      - name: Install dependencies
+        working-directory: ./desktop
+        run: npm install
+        
+      - name: Build Tauri app
+        working-directory: ./desktop
+        run: npm run tauri:build
+        
+      - name: Get version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./desktop/package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          
+      - name: Prepare release file
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          MSI_PATH=$(find desktop/src-tauri/target/release/bundle/msi -name "*.msi" | head -1)
+          if [ -f "$MSI_PATH" ]; then
+            mkdir -p release
+            zip release/notes-desktop_${VERSION}_x86_64-pc-windows-msvc.msi.zip "$MSI_PATH"
+            echo "Created: release/notes-desktop_${VERSION}_x86_64-pc-windows-msvc.msi.zip"
+          fi
+          
+      - name: Upload to server
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+        shell: bash
+        run: |
+          echo "$SSH_PRIVATE_KEY" > private_key
+          chmod 600 private_key
+          scp -o StrictHostKeyChecking=no -i private_key release/*.zip ${SERVER_USER}@${SERVER_HOST}:/opt/notesapp/updates/releases/
+          rm private_key
+          
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer
+          path: release/*.zip
