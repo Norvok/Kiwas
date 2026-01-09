@@ -42,7 +42,7 @@ jobs:
   deploy-to-server:
     runs-on: ubuntu-latest
     needs: build-windows
-    if: ${{ secrets.SERVER_HOST != '' && secrets.SERVER_USER != '' && secrets.SERVER_KEY != '' }}
+    if: ${{ secrets.SERVER_HOST != '' && secrets.SERVER_USER != '' && secrets.SSH_PRIVATE_KEY != '' }}
     steps:
       - name: Download artifact
         uses: actions/download-artifact@v4
@@ -54,9 +54,9 @@ jobs:
         env:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
           SERVER_USER: ${{ secrets.SERVER_USER }}
-          SERVER_KEY: ${{ secrets.SERVER_KEY }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           install -m 700 -d ~/.ssh
-          echo "$SERVER_KEY" > ~/.ssh/id_rsa
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           rsync -av --delete -e "ssh -o StrictHostKeyChecking=no" artifact/ "$SERVER_USER@$SERVER_HOST:/opt/notesapp/updates/"
