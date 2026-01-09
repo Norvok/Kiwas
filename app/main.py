@@ -352,7 +352,8 @@ async def calendar_ws(websocket: WebSocket, session: AsyncSession = Depends(get_
             calendar_clients.discard(websocket)
 
 # Updates endpoint for Tauri updater
-@app.get("/updates/{target}/{arch}/{current_version}")
+@app.get("/api/updates/{target}/{arch}/{current_version}")
+@app.head("/api/updates/{target}/{arch}/{current_version}")
 async def check_update(target: str, arch: str, current_version: str):
     """
     Endpoint dla Tauri updater plugin.
@@ -384,14 +385,15 @@ async def check_update(target: str, arch: str, current_version: str):
         return {"url": "", "version": current_version, "notes": "Aktualizacja niedostępna", "pub_date": ""}
     
     return {
-        "url": f"https://api.vamare.pl/updates/download/{filename}",
+        "url": f"https://api.vamare.pl/api/updates/download/{filename}",
         "version": latest_version,
         "notes": "Nowa wersja zawiera poprawki i ulepszenia",
         "pub_date": datetime.utcnow().isoformat(),
     }
 
 
-@app.get("/updates/download/{filename}")
+@app.get("/api/updates/download/{filename}")
+@app.head("/api/updates/download/{filename}")
 async def download_update(filename: str):
     """
     Pobieranie pliku aktualizacji.

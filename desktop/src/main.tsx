@@ -42,6 +42,7 @@ function App() {
   const [events, setEvents] = useState<any[]>([])
   const [noteForm, setNoteForm] = useState({ title: '', content: '' })
   const [eventForm, setEventForm] = useState({ title: '', description: '', start_time: '', end_time: '' })
+  const [viewDate, setViewDate] = useState<Date>(() => new Date())
   const [panelsState, setPanelsState] = useState<Record<string, Record<string, { view: boolean; edit: boolean }>>>(() => ({
     praca: {
       kalendarz: { view: true, edit: true },
@@ -139,6 +140,31 @@ function App() {
       setStatus(`Błąd: ${err.message}`)
     }
   }
+
+  // Calendar helpers
+  const weekdayLabels = ['Pon', 'Wto', 'Śro', 'Czw', 'Pią', 'Sob', 'Nie']
+
+  function buildCalendarDays(current: Date) {
+    const year = current.getFullYear()
+    const month = current.getMonth()
+    const first = new Date(year, month, 1)
+    const offset = (first.getDay() + 6) % 7 // Monday start
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+    const totalCells = Math.ceil((offset + daysInMonth) / 7) * 7
+
+    const dayCells: { date: Date; inMonth: boolean; events: any[] }[] = []
+    for (let i = 0; i < totalCells; i++) {
+      const dayNum = i - offset + 1
+      const date = new Date(year, month, dayNum)
+      const inMonth = dayNum >= 1 && dayNum <= daysInMonth
+      const key = date.toISOString().slice(0, 10)
+      const dayEvents = events.filter((ev) => (ev.start_time || '').slice(0, 10) === key)
+      dayCells.push({ date, inMonth, events: dayEvents })
+    }
+    return dayCells
+  }
+
+  const calendarDays = buildCalendarDays(viewDate)
 
   // Check for updates on app start
   useEffect(() => {
@@ -318,21 +344,54 @@ function App() {
                 />
                 <button onClick={createEvent}>Dodaj wydarzenie</button>
               </div>
-              <div style={{ marginTop: '20px' }}>
-                {events.map((event) => (
-                  <div key={event.id} className="card soft" style={{ marginBottom: '12px' }}>
-                    <div className="row space-between">
-                      <h3>{event.title}</h3>
-                      <button className="ghost" onClick={() => deleteEvent(event.id)}>Usuń</button>
-                    </div>
-                    {event.description && <p style={{ color: '#9ca3af' }}>{event.description}</p>}
-                    <div style={{ color: '#6b7280', fontSize: '14px' }}>
-                      <div>Start: {new Date(event.start_time).toLocaleString('pl-PL')}</div>
-                      <div>Koniec: {new Date(event.end_time).toLocaleString('pl-PL')}</div>
-                    </div>
+              <div className="calendar">
+                <div className="calendar-header">
+                  <button className="ghost" onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))}>
+                    ◀ Poprzedni
+                  </button>
+                  <div className="calendar-title">
+                    {viewDate.toLocaleString('pl-PL', { month: 'long', year: 'numeric' })}
                   </div>
-                ))}
-                {events.length === 0 && <p style={{ color: '#6b7280' }}>Brak wydarzeń</p>}
+                  <button className="ghost" onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1))}>
+                    Następny ▶
+                  </button>
+                  <button className="ghost" onClick={() => setViewDate(new Date())} style={{ marginLeft: 'auto' }}>
+                    Dziś
+                  </button>
+                </div>
+                <div className="calendar-grid calendar-weekdays">
+                  {weekdayLabels.map((day) => (
+                    <div key={day} className="weekday">
+                      {day}
+                    </div>
+                  ))}
+                </div>
+                <div className="calendar-grid">
+                  {calendarDays.map((cell, idx) => {
+                    const isToday = cell.date.toDateString() === new Date().toDateString()
+                    return (
+                      <div
+                        key={idx}
+                        className={`day-cell ${cell.inMonth ? '' : 'muted'} ${isToday ? 'today' : ''}`.trim()}
+                      >
+                        <div className="day-number">{cell.date.getDate()}</div>
+                        <div className="day-events">
+                          {cell.events.map((ev: any) => (
+                            <div key={ev.id} className="pill">
+                              <div className="pill-title">{ev.title}</div>
+                              <div className="pill-time">
+                                {new Date(ev.start_time).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}
+                              </div>
+                              <button className="pill-delete" onClick={() => deleteEvent(ev.id)} title="Usuń wydarzenie">
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               </div>
             </section>
           )}
