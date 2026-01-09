@@ -367,7 +367,7 @@ async def check_update(target: str, arch: str, current_version: str):
     updates_dir = Path(__file__).parent.parent / "updates" / "releases"
     
     # Wersja z aplikacji - zmień na aktualną gdy będziesz tworzyć nowe builde
-    latest_version = "0.2.1"
+    latest_version = "0.2.2"
     
     # Jeśli klient ma taką samą wersję, nie ma co aktualizować
     if current_version >= latest_version:
@@ -384,7 +384,7 @@ async def check_update(target: str, arch: str, current_version: str):
         return {"url": "", "version": current_version, "notes": "Aktualizacja niedostępna", "pub_date": ""}
     
     return {
-        "url": f"http://api.vamare.pl:4000/updates/download/{filename}",
+        "url": f"https://api.vamare.pl/updates/download/{filename}",
         "version": latest_version,
         "notes": "Nowa wersja zawiera poprawki i ulepszenia",
         "pub_date": datetime.utcnow().isoformat(),

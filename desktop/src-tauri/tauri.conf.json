@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Notes Desktop",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "identifier": "pl.vamare.notes",
   "build": {
     "beforeBuildCommand": "npm run build",
@@ -25,11 +25,11 @@
     "updater": {
       "active": true,
       "endpoints": [
-        "http://api.vamare.pl/updates/{{target}}/{{arch}}/{{current_version}}"
+        "https://api.vamare.pl/updates/{{target}}/{{arch}}/{{current_version}}"
       ],
       "dialog": true,
       "pubkey": "dW5zdXBwb3J0ZWQ=",
-      "dangerousInsecureTransportProtocol": true
+      "dangerousInsecureTransportProtocol": false
     }
   },
   "bundle": {
