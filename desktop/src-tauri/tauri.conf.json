@@ -21,6 +21,9 @@
       "csp": null
     }
   },
+  "capabilities": [
+    "default"
+  ],
   "plugins": {
     "updater": {
       "active": true,
