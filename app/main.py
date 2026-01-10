@@ -368,7 +368,7 @@ async def check_update(target: str, arch: str, current_version: str):
     updates_dir = Path(__file__).parent.parent / "updates" / "releases"
     
     # Wersja z aplikacji - zmień na aktualną gdy będziesz tworzyć nowe builde
-    latest_version = "0.2.5"
+    latest_version = "0.2.6"
     
     # Porównanie semantyczne wersji
     def parse_version(v: str):
