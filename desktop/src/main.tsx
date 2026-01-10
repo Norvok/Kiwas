@@ -166,23 +166,26 @@ function App() {
 
   const calendarDays = buildCalendarDays(viewDate)
 
-  // Check for updates on app start
-  useEffect(() => {
-    async function checkForUpdates() {
-      try {
-        const update = await check()
-        if (update) {
-          console.log('Nowa wersja dostępna:', update.version)
-          setStatus(`Dostępna aktualizacja v${update.version}. Pobieranie...`)
-          await update.downloadAndInstall()
-          await relaunch()
-        }
-      } catch (err) {
-        console.warn('Błąd przy sprawdzaniu aktualizacji:', err)
+  // Manual update check
+  async function checkForUpdates() {
+    setStatus('Sprawdzanie aktualizacji...')
+    try {
+      const update = await check()
+      if (update) {
+        console.log('Nowa wersja dostępna:', update.version)
+        setStatus(`Dostępna aktualizacja v${update.version}. Pobieranie i instalacja...`)
+        await update.downloadAndInstall()
+        await relaunch()
+      } else {
+        setStatus('Masz już najnowszą wersję!')
+        setTimeout(() => setStatus(''), 3000)
       }
+    } catch (err: any) {
+      console.error('Błąd przy sprawdzaniu aktualizacji:', err)
+      setStatus(`Błąd aktualizacji: ${err.message || err}`)
+      setTimeout(() => setStatus(''), 5000)
     }
-    checkForUpdates()
-  }, [])
+  }
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -438,6 +441,15 @@ function App() {
             <div className="row end">
               <button className="ghost">Zapisz uprawnienia (TODO API)</button>
             </div>
+          </section>
+
+          <section className="card">
+            <div className="row space-between">
+              <h2>Aktualizacje</h2>
+              <button onClick={checkForUpdates}>Sprawdź aktualizację</button>
+            </div>
+            <p>Kliknij przycisk, aby sprawdzić dostępność nowej wersji aplikacji. Aktualizacja zostanie pobrana i zainstalowana automatycznie.</p>
+            {status && <div className="status" style={{ marginTop: '12px' }}>{status}</div>}
           </section>
 
           <section className="card">

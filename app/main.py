@@ -370,8 +370,15 @@ async def check_update(target: str, arch: str, current_version: str):
     # Wersja z aplikacji - zmień na aktualną gdy będziesz tworzyć nowe builde
     latest_version = "0.2.3"
     
-    # Jeśli klient ma taką samą wersję, nie ma co aktualizować
-    if current_version >= latest_version:
+    # Porównanie semantyczne wersji
+    def parse_version(v: str):
+        try:
+            return tuple(map(int, v.split('.')))
+        except:
+            return (0, 0, 0)
+    
+    # Jeśli klient ma taką samą lub nowszą wersję, nie ma co aktualizować
+    if parse_version(current_version) >= parse_version(latest_version):
         return {"url": "", "version": current_version, "notes": "Już masz najnowszą wersję", "pub_date": ""}
     
     # Nazwa pliku: notes-desktop_0.2.0_x86_64-pc-windows-msvc.msi.zip
