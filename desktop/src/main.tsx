@@ -160,14 +160,21 @@ function App() {
 
   async function createNote(title: string, content: string) {
     if (!title) return
+    if (!token) {
+      setStatus('Błąd: Nie jesteś zalogowany')
+      return
+    }
     try {
       const res = await axios.post(`${serverUrl}/notes`, { title, content }, {
         headers: { Authorization: `Bearer ${token}` }
       })
       setNotes([res.data, ...notes])
       setSelectedNoteId(res.data.id)
+      setStatus('Notatka dodana')
+      setTimeout(() => setStatus(''), 2000)
     } catch (err: any) {
-      setStatus(`Błąd: ${err.message}`)
+      console.error('createNote error:', err)
+      setStatus(`Błąd przy dodawaniu: ${err.response?.data?.detail || err.message}`)
     }
   }
 
