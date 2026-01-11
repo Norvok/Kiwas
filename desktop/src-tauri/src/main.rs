@@ -44,7 +44,7 @@ fn init_file_logger() {
 
 fn main() {
     init_file_logger();
-    info!("Notes Desktop starting", version = env!("CARGO_PKG_VERSION"));
+    info!(version = env!("CARGO_PKG_VERSION"), "Notes Desktop starting");
 
     panic::set_hook(Box::new(|panic_info| {
         if let Some(location) = panic_info.location() {
