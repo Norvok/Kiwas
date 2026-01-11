@@ -332,7 +332,14 @@ function App() {
         setTimeout(() => setStatus(''), 3000)
       }
     } catch (err: any) {
-      setStatus(`Błąd: ${err.message}`)
+      // Obsługa błędu pustego URL (gdy serwer zwraca "" dla aktualnej wersji)
+      if (err.message && err.message.includes('relative URL without a base')) {
+        setStatus('Masz najnowszą wersję!')
+        setTimeout(() => setStatus(''), 3000)
+      } else {
+        setStatus(`Błąd aktualizacji: ${err.message}`)
+        setTimeout(() => setStatus(''), 5000)
+      }
     }
   }
 
