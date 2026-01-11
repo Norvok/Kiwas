@@ -367,9 +367,6 @@ async def check_update(target: str, arch: str, current_version: str):
     # Katalog ze storanymi build'ami (./updates/releases/)
     updates_dir = Path(__file__).parent.parent / "updates" / "releases"
     
-    # Wersja z aplikacji - zmień na aktualną gdy będziesz tworzyć nowe builde
-    latest_version = "0.2.6"
-    
     # Porównanie semantyczne wersji
     def parse_version(v: str):
         try:
@@ -377,23 +374,31 @@ async def check_update(target: str, arch: str, current_version: str):
         except:
             return (0, 0, 0)
     
-    # Jeśli klient ma taką samą lub nowszą wersję, nie ma co aktualizować
-    if parse_version(current_version) >= parse_version(latest_version):
-        return {"url": "", "version": current_version, "notes": "Już masz najnowszą wersję", "pub_date": ""}
+    # Szukaj najnowszego pliku dla danego target/arch
+    pattern = f"notes-desktop_*_{arch}-pc-{target}-msvc.msi.zip"
+    files = list(updates_dir.glob(pattern))
     
-    # Nazwa pliku: notes-desktop_0.2.0_x86_64-pc-windows-msvc.msi.zip
-    # lub notes-desktop_0.2.0_x86_64-pc-windows-msvc_en-US.msi.zip
-    filename = f"notes-desktop_{latest_version}_{arch}-pc-{target}-msvc.msi.zip"
-    
-    # Sprawdzenie czy plik istnieje
-    update_file = updates_dir / filename
-    if not update_file.exists():
-        # Jeśli nie ma pliku, zwróć aktualną wersję
+    if not files:
         return {"url": "", "version": current_version, "notes": "Aktualizacja niedostępna", "pub_date": ""}
     
+    # Sortuj po wersji (filename to notes-desktop_X.Y.Z_...)
+    def extract_version(fname: Path) -> tuple:
+        try:
+            parts = fname.stem.split('_')
+            return parse_version(parts[1])
+        except:
+            return (0, 0, 0)
+    
+    latest_file = max(files, key=extract_version)
+    latest_version = extract_version(latest_file)
+    
+    # Jeśli klient ma taką samą lub nowszą wersję, nie ma co aktualizować
+    if parse_version(current_version) >= latest_version:
+        return {"url": "", "version": current_version, "notes": "Już masz najnowszą wersję", "pub_date": ""}
+    
     return {
-        "url": f"https://api.vamare.pl/api/updates/download/{filename}",
-        "version": latest_version,
+        "url": f"https://api.vamare.pl/api/updates/download/{latest_file.name}",
+        "version": ".".join(map(str, latest_version)),
         "notes": "Nowa wersja zawiera poprawki i ulepszenia",
         "pub_date": datetime.utcnow().isoformat(),
     }
@@ -411,10 +416,11 @@ async def download_update(filename: str):
     
     # Zabezpieczenie: sprawdzenie, że filename to znany plik
     updates_dir = Path(__file__).parent.parent / "updates" / "releases"
-    file_path = updates_dir / filename
+    file_path = (updates_dir / filename).resolve()
+    updates_dir = updates_dir.resolve()
     
     # Sprawdzenie, czy plik istnieje i jest w updates/releases/
-    if not file_path.exists() or not file_path.is_relative_to(updates_dir):
+    if not file_path.exists() or not str(file_path).startswith(str(updates_dir)):
         raise HTTPException(status_code=404, detail="Update file not found")
     
     return FileResponse(file_path, media_type="application/zip", filename=filename)

@@ -32,17 +32,20 @@ class TokenData(BaseModel):
 class NoteCreate(BaseModel):
     title: str
     content: str = ""
+    color: Optional[str] = None
 
 
 class NoteUpdate(BaseModel):
     title: Optional[str] = None
     content: Optional[str] = None
+    color: Optional[str] = None
 
 
 class NoteOut(BaseModel):
     id: UUID
     title: str
     content: str
+    color: Optional[str] = None
     updated_at: datetime
 
     class Config:
