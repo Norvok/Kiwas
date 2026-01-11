@@ -329,16 +329,21 @@ function App() {
   async function checkForUpdates() {
     setStatus('Sprawdzanie aktualizacji...')
     try {
+      console.log('Checking for updates from Tauri plugin...')
       const update = await check()
+      console.log('Update response:', update)
       if (update) {
+        console.log(`Update available: ${update.version}`)
         setStatus(`Dostępna wersja ${update.version}. Pobieranie...`)
         await update.downloadAndInstall()
         await relaunch()
       } else {
+        console.log('No update available')
         setStatus('Masz najnowszą wersję!')
         setTimeout(() => setStatus(''), 3000)
       }
     } catch (err: any) {
+      console.error('Update check error:', err)
       // Obsługa błędu pustego URL (gdy serwer zwraca "" dla aktualnej wersji)
       if (err.message && err.message.includes('relative URL without a base')) {
         setStatus('Masz najnowszą wersję!')
