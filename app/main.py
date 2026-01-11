@@ -394,13 +394,14 @@ async def check_update(target: str, arch: str, current_version: str):
     
     # Jeśli klient ma taką samą lub nowszą wersję, nie ma co aktualizować
     if parse_version(current_version) >= latest_version:
-        return {"url": "", "version": current_version, "notes": "Już masz najnowszą wersję", "pub_date": ""}
+        return {"url": "", "version": current_version, "notes": "Już masz najnowszą wersję", "pub_date": "", "signature": ""}
     
     return {
         "url": f"https://api.vamare.pl/api/updates/download/{latest_file.name}",
         "version": ".".join(map(str, latest_version)),
         "notes": "Nowa wersja zawiera poprawki i ulepszenia",
-        "pub_date": datetime.utcnow().isoformat(),
+        "pub_date": datetime.utcnow().isoformat() + "Z",
+        "signature": "",
     }
 
 
