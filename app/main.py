@@ -6,6 +6,7 @@ from uuid import UUID
 
 from fastapi import Depends, FastAPI, HTTPException, WebSocket, WebSocketDisconnect, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -392,17 +393,27 @@ async def check_update(target: str, arch: str, current_version: str):
     latest_file = max(files, key=extract_version)
     latest_version = extract_version(latest_file)
     
-    # Jeśli klient ma taką samą lub nowszą wersję, nie ma co aktualizować
+    # Przygotuj odpowiedź JSON
     if parse_version(current_version) >= latest_version:
-        return {"url": "", "version": current_version, "notes": "Już masz najnowszą wersję", "pub_date": "", "signature": ""}
+        response_data = {"url": "", "version": current_version, "notes": "Już masz najnowszą wersję", "pub_date": "", "signature": ""}
+    else:
+        response_data = {
+            "url": f"https://api.vamare.pl/api/updates/download/{latest_file.name}",
+            "version": ".".join(map(str, latest_version)),
+            "notes": "Nowa wersja zawiera poprawki i ulepszenia",
+            "pub_date": datetime.utcnow().isoformat() + "Z",
+            "signature": "",
+        }
     
-    return {
-        "url": f"https://api.vamare.pl/api/updates/download/{latest_file.name}",
-        "version": ".".join(map(str, latest_version)),
-        "notes": "Nowa wersja zawiera poprawki i ulepszenia",
-        "pub_date": datetime.utcnow().isoformat() + "Z",
-        "signature": "",
-    }
+    # Zwróć z nagłówkami wyłączającymi cache
+    return JSONResponse(
+        content=response_data,
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        }
+    )
 
 
 @app.get("/api/updates/download/{filename}")
