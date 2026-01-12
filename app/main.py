@@ -364,6 +364,10 @@ async def check_update(target: str, arch: str, current_version: str):
     """
     import os
     from pathlib import Path
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    logger.info(f"Update check: target={target}, arch={arch}, current_version={current_version}")
     
     # Katalog ze storanymi build'ami (./updates/releases/)
     updates_dir = Path(__file__).parent.parent / "updates" / "releases"
