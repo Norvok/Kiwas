@@ -335,7 +335,9 @@ function App() {
       if (update) {
         console.log(`Update available: ${update.version}`)
         setStatus(`Dostępna wersja ${update.version}. Pobieranie...`)
+        console.log('Starting download and install...')
         await update.downloadAndInstall()
+        console.log('Download complete, relaunching...')
         await relaunch()
       } else {
         console.log('No update available')
@@ -344,12 +346,19 @@ function App() {
       }
     } catch (err: any) {
       console.error('Update check error:', err)
+      console.error('Error details:', {
+        message: err.message,
+        name: err.name,
+        code: err.code,
+        stack: err.stack
+      })
       // Obsługa błędu pustego URL (gdy serwer zwraca "" dla aktualnej wersji)
       if (err.message && err.message.includes('relative URL without a base')) {
         setStatus('Masz najnowszą wersję!')
         setTimeout(() => setStatus(''), 3000)
       } else {
-        setStatus(`Błąd aktualizacji: ${err.message}`)
+        const errorMsg = err.message || err.toString() || 'Nieznany błąd'
+        setStatus(`Błąd aktualizacji: ${errorMsg}`)
         setTimeout(() => setStatus(''), 5000)
       }
     }
