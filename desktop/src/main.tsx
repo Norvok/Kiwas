@@ -5,6 +5,7 @@ import { create } from 'zustand'
 import { check } from '@tauri-apps/plugin-updater'
 import { relaunch } from '@tauri-apps/plugin-process'
 import { sendNotification } from '@tauri-apps/plugin-notification'
+import { getVersion } from '@tauri-apps/api/app'
 import './style.css'
 
 interface AppState {
@@ -63,9 +64,14 @@ function App() {
   const [searchQuery, setSearchQuery] = useState('')
   const [calendarChoice, setCalendarChoice] = useState('praca')
   const [viewDate, setViewDate] = useState<Date>(() => new Date())
+  const [appVersion, setAppVersion] = useState<string>('...')
   const wsRef = useRef<WebSocket | null>(null)
 
   const selectedNote = notes.find(n => n.id === selectedNoteId)
+
+  useEffect(() => {
+    getVersion().then(setAppVersion).catch(() => setAppVersion('unknown'))
+  }, [])
 
   useEffect(() => {
     const saved = typeof localStorage !== 'undefined' ? localStorage.getItem('serverUrl') : null
@@ -607,7 +613,7 @@ function App() {
           <section className="settings-card">
             <h2>Aplikacja</h2>
             <div className="setting-row">
-              <span>Wersja: 0.2.6</span>
+              <span>Wersja: {appVersion}</span>
               <button onClick={checkForUpdates}>Sprawdź aktualizację</button>
             </div>
             {status && <div className="status">{status}</div>}
