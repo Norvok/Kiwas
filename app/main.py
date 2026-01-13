@@ -76,13 +76,33 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), session: Async
 # Notes REST
 @app.get("/notes", response_model=list[NoteOut])
 async def list_notes(current_user: User = Depends(get_current_user), session: AsyncSession = Depends(get_session)):
-    result = await session.execute(select(Note).where(Note.owner_id == current_user.id).order_by(Note.updated_at.desc()))
+    result = await session.execute(
+        select(Note)
+        .where((Note.owner_id == current_user.id) & (Note.archived == False))
+        .order_by(Note.updated_at.desc())
+    )
+    return result.scalars().all()
+
+
+@app.get("/notes/archived", response_model=list[NoteOut])
+async def list_archived_notes(current_user: User = Depends(get_current_user), session: AsyncSession = Depends(get_session)):
+    result = await session.execute(
+        select(Note)
+        .where((Note.owner_id == current_user.id) & (Note.archived == True))
+        .order_by(Note.updated_at.desc())
+    )
     return result.scalars().all()
 
 
 @app.post("/notes", response_model=NoteOut, status_code=201)
 async def create_note(payload: NoteCreate, current_user: User = Depends(get_current_user), session: AsyncSession = Depends(get_session)):
-    note = Note(title=payload.title, content=payload.content, owner_id=current_user.id)
+    note = Note(
+        title=payload.title,
+        content=payload.content,
+        color=payload.color,
+        tags=payload.tags or "",
+        owner_id=current_user.id
+    )
     session.add(note)
     await session.commit()
     await session.refresh(note)
@@ -106,6 +126,12 @@ async def update_note(note_id: UUID, payload: NoteUpdate, current_user: User = D
         note.title = payload.title
     if payload.content is not None:
         note.content = payload.content
+    if payload.color is not None:
+        note.color = payload.color
+    if payload.tags is not None:
+        note.tags = payload.tags
+    if payload.archived is not None:
+        note.archived = payload.archived
     await session.commit()
     await session.refresh(note)
     await broadcast_note_change(note)
@@ -139,8 +165,11 @@ async def create_event(
     event = CalendarEvent(
         title=payload.title,
         description=payload.description,
-        start_time=payload.start_time,
-        end_time=payload.end_time,
+        is_all_day=payload.is_all_day,
+        start_time=payload.start_time if not payload.is_all_day else None,
+        end_time=payload.end_time if not payload.is_all_day else None,
+        event_date=payload.event_date if payload.is_all_day else None,
+        reminder_minutes=payload.reminder_minutes or "",
         owner_id=current_user.id,
     )
     session.add(event)
@@ -164,10 +193,19 @@ async def update_event(
         event.title = payload.title
     if payload.description is not None:
         event.description = payload.description
-    if payload.start_time is not None:
+    if payload.is_all_day is not None:
+        event.is_all_day = payload.is_all_day
+        if payload.is_all_day:
+            event.start_time = None
+            event.end_time = None
+    if payload.start_time is not None and not event.is_all_day:
         event.start_time = payload.start_time
-    if payload.end_time is not None:
+    if payload.end_time is not None and not event.is_all_day:
         event.end_time = payload.end_time
+    if payload.event_date is not None and event.is_all_day:
+        event.event_date = payload.event_date
+    if payload.reminder_minutes is not None:
+        event.reminder_minutes = payload.reminder_minutes
     await session.commit()
     await session.refresh(event)
     await broadcast_calendar_change({"action": "updated", "event": serialize_event(event)})
