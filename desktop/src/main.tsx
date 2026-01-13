@@ -118,6 +118,9 @@ function App() {
         setDownloadUrl(res.data.download_url)
       } catch (err) {
         console.error('Error checking latest version:', err)
+        // Fallback: use latest known version
+        setLatestVersion('0.3.3')
+        setDownloadUrl('https://api.vamare.pl/api/updates/download/notes-desktop_0.3.3_x86_64-pc-windows-msvc.msi.zip')
       }
     }
     
@@ -856,6 +859,28 @@ function App() {
                 >
                   ⬇️ Pobierz i zainstaluj teraz
                 </button>
+              </div>
+            )}
+            {appVersion === 'unknown' && (
+              <div style={{ marginTop: '12px', padding: '12px', backgroundColor: '#dbeafe', borderRadius: '6px', color: '#1e40af' }}>
+                <p style={{ marginBottom: '8px', fontSize: '13px' }}>ℹ️ Najnowsza wersja: 0.3.3</p>
+                <a 
+                  href="https://api.vamare.pl/api/updates/download/notes-desktop_0.3.3_x86_64-pc-windows-msvc.msi.zip"
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ 
+                    display: 'inline-block',
+                    padding: '8px 16px', 
+                    backgroundColor: '#3b82f6', 
+                    color: 'white',
+                    textDecoration: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  ⬇️ Pobierz wersję 0.3.3
+                </a>
               </div>
             )}
             {status && <div className="status">{status}</div>}
