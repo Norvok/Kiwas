@@ -458,6 +458,43 @@ async def check_update(target: str, arch: str, current_version: str):
     )
 
 
+@app.get("/api/version-info")
+async def get_version_info():
+    """
+    Zwraca informacje o najnowszej dostępnej wersji.
+    Używane przez frontend do sprawdzania czy jest update.
+    """
+    from pathlib import Path
+    import re
+    
+    updates_dir = Path(__file__).parent.parent / "updates" / "releases"
+    if not updates_dir.exists():
+        return {"latest_version": "0.3.3", "download_url": None}
+    
+    # Szukaj najnowszego pliku MSI
+    msi_files = list(updates_dir.glob("notes-desktop_*.msi.zip"))
+    if not msi_files:
+        return {"latest_version": "0.3.3", "download_url": None}
+    
+    # Sortuj po wersji
+    def extract_version(filename: str):
+        match = re.search(r'notes-desktop_(\d+\.\d+\.\d+)', filename)
+        if match:
+            parts = match.group(1).split('.')
+            return tuple(int(p) for p in parts)
+        return (0, 0, 0)
+    
+    latest_file = max(msi_files, key=lambda f: extract_version(f.name))
+    version_match = re.search(r'notes-desktop_(\d+\.\d+\.\d+)', latest_file.name)
+    latest_version = version_match.group(1) if version_match else "0.3.3"
+    
+    return {
+        "latest_version": latest_version,
+        "download_url": f"https://api.vamare.pl/api/updates/download/{latest_file.name}",
+        "current_file": latest_file.name
+    }
+
+
 @app.get("/api/updates/download/{filename}")
 @app.head("/api/updates/download/{filename}")
 async def download_update(filename: str):

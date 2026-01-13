@@ -81,6 +81,8 @@ function App() {
     endTime: '',
     reminders: [] as number[]
   })
+  const [latestVersion, setLatestVersion] = useState<string | null>(null)
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null)
   const wsRef = useRef<WebSocket | null>(null)
 
   const selectedNote = notes.find(n => n.id === selectedNoteId)
@@ -101,6 +103,23 @@ function App() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
   }, [theme])
+
+  useEffect(() => {
+    // Sprawdzaj dostępną wersję co minutę
+    const checkLatestVersion = async () => {
+      try {
+        const res = await axios.get(`${serverUrl}/api/version-info`)
+        setLatestVersion(res.data.latest_version)
+        setDownloadUrl(res.data.download_url)
+      } catch (err) {
+        console.error('Error checking latest version:', err)
+      }
+    }
+    
+    checkLatestVersion()
+    const interval = setInterval(checkLatestVersion, 60000) // Co minutę
+    return () => clearInterval(interval)
+  }, [serverUrl])
 
   useEffect(() => {
     if (token) {
@@ -456,6 +475,15 @@ function App() {
     }
   }
 
+  function downloadManually() {
+    // Otwórz bezpośrednio najnowszy build
+    if (downloadUrl) {
+      window.open(downloadUrl, '_blank')
+    } else {
+      window.open('https://api.vamare.pl/api/updates/download/notes-desktop_0.3.3_x86_64-pc-windows-msvc.msi.zip', '_blank')
+    }
+  }
+
   async function sendTestNotif() {
     try {
       sendNotification({
@@ -789,6 +817,25 @@ function App() {
               <span>Wersja: {appVersion}</span>
               <button onClick={checkForUpdates}>Sprawdź aktualizację</button>
             </div>
+            {latestVersion && appVersion !== latestVersion && appVersion !== '...' && (
+              <div style={{ marginTop: '12px', padding: '12px', backgroundColor: '#fef3c7', borderRadius: '6px', color: '#92400e' }}>
+                <p style={{ marginBottom: '8px', fontSize: '13px' }}>📥 Dostępna jest nowa wersja {latestVersion}!</p>
+                <button 
+                  onClick={downloadManually}
+                  style={{ 
+                    padding: '8px 16px', 
+                    backgroundColor: '#fbbf24', 
+                    color: '#78350f',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  ⬇️ Pobierz i zainstaluj teraz
+                </button>
+              </div>
+            )}
             {status && <div className="status">{status}</div>}
           </section>
 
