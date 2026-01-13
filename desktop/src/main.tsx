@@ -64,9 +64,11 @@ function App() {
   const [status, setStatus] = useState('')
   const [activeTab, setActiveTab] = useState<'notes' | 'calendar' | 'settings'>('notes')
   const [notes, setNotes] = useState<Note[]>([])
+  const [archivedNotes, setArchivedNotes] = useState<Note[]>([])
   const [events, setEvents] = useState<CalendarEvent[]>([])
   const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState('')
+  const [showArchived, setShowArchived] = useState(false)
   const [calendarChoice, setCalendarChoice] = useState('praca')
   const [viewDate, setViewDate] = useState<Date>(() => new Date())
   const [appVersion, setAppVersion] = useState<string>('...')
@@ -103,6 +105,7 @@ function App() {
   useEffect(() => {
     if (token) {
       fetchNotes()
+      fetchArchivedNotes()
       fetchEvents()
     }
     return () => {
@@ -163,6 +166,20 @@ function App() {
     }
   }
 
+  async function fetchArchivedNotes() {
+    try {
+      const res = await axios.get(`${serverUrl}/notes/archived`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const sorted = (res.data as Note[]).sort((a, b) => 
+        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      )
+      setArchivedNotes(sorted)
+    } catch (err) {
+      console.error('Błąd pobierania archiwizowanych notatek:', err)
+    }
+  }
+
   async function fetchEvents() {
     try {
       const res = await axios.get(`${serverUrl}/calendar`, {
@@ -205,6 +222,7 @@ function App() {
         headers: { Authorization: `Bearer ${token}` }
       })
       fetchNotes()
+      fetchArchivedNotes()
     } catch (err: any) {
       setStatus(`Błąd: ${err.message}`)
     }
@@ -303,7 +321,8 @@ function App() {
     }
   }
 
-  const filteredNotes = notes.filter(n => 
+  const displayedNotes = showArchived ? archivedNotes : notes
+  const filteredNotes = displayedNotes.filter(n => 
     n.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     n.content.toLowerCase().includes(searchQuery.toLowerCase())
   )
@@ -534,6 +553,13 @@ function App() {
               />
               <button className="btn-new" onClick={() => createNote('Nowa notatka', '')}>
                 ➕ Dodaj
+              </button>
+              <button 
+                className={`btn-toggle ${showArchived ? 'active' : ''}`}
+                onClick={() => setShowArchived(!showArchived)}
+                title={showArchived ? 'Pokaż aktywne' : 'Pokaż archiwizowane'}
+              >
+                {showArchived ? '📂 Archiwum' : '📝 Aktywne'}
               </button>
             </div>
 

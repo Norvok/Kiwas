@@ -788,3 +788,30 @@ body {
 .reminder-checkboxes .checkbox-label:hover {
   background-color: var(--bg-tertiary);
 }
+
+/* Archive toggle button */
+.btn-toggle {
+  width: 100%;
+  padding: 8px 12px;
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.btn-toggle:hover {
+  background-color: var(--bg-secondary);
+}
+
+.btn-toggle.active {
+  background-color: var(--accent-light);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+:root[data-theme="dark"] .btn-toggle.active {
+  background-color: rgba(96, 165, 250, 0.15);
+}
