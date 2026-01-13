@@ -41,6 +41,8 @@ interface Note {
   title: string
   content: string
   color?: string
+  tags?: string
+  archived?: boolean
   updated_at: string
 }
 
@@ -48,8 +50,11 @@ interface CalendarEvent {
   id: string
   title: string
   description?: string
-  start_time: string
-  end_time: string
+  start_time?: string | null
+  end_time?: string | null
+  is_all_day?: boolean
+  event_date?: string
+  reminder_minutes?: string
   updated_at: string
 }
 
@@ -65,6 +70,15 @@ function App() {
   const [calendarChoice, setCalendarChoice] = useState('praca')
   const [viewDate, setViewDate] = useState<Date>(() => new Date())
   const [appVersion, setAppVersion] = useState<string>('...')
+  const [eventForm, setEventForm] = useState({
+    title: '',
+    description: '',
+    isAllDay: false,
+    eventDate: '',
+    startTime: '',
+    endTime: '',
+    reminders: [] as number[]
+  })
   const wsRef = useRef<WebSocket | null>(null)
 
   const selectedNote = notes.find(n => n.id === selectedNoteId)
@@ -128,6 +142,13 @@ function App() {
     wsRef.current = ws
   }
 
+  useEffect(() => {
+    if (activeTab === 'calendar' && events.length > 0) {
+      const interval = setInterval(checkUpcomingReminders, 30000) // Check every 30 seconds
+      return () => clearInterval(interval)
+    }
+  }, [activeTab, events])
+
   async function fetchNotes() {
     try {
       const res = await axios.get(`${serverUrl}/notes`, {
@@ -151,6 +172,31 @@ function App() {
     } catch (err) {
       console.error('Błąd pobierania wydarzeń:', err)
     }
+  }
+
+  function checkUpcomingReminders() {
+    const now = new Date()
+    events.forEach(event => {
+      if (!event.reminder_minutes) return
+      
+      const reminders = event.reminder_minutes.split(',').map(r => parseInt(r.trim()))
+      const eventTime = event.is_all_day 
+        ? new Date(event.event_date + 'T09:00:00').getTime()
+        : new Date(event.start_time || '').getTime()
+      
+      reminders.forEach(minutes => {
+        const reminderTime = eventTime - (minutes * 60000)
+        const timeDiff = reminderTime - now.getTime()
+        
+        // Show notification if within 30 seconds of reminder time
+        if (timeDiff > 0 && timeDiff < 30000) {
+          sendNotification({
+            title: 'Przypomnienie',
+            body: `Zbliża się: ${event.title}`,
+          })
+        }
+      })
+    })
   }
 
   async function updateNote(id: string, updates: Partial<Note>) {
@@ -201,23 +247,44 @@ function App() {
   }
 
   async function createEvent() {
-    const title = (document.getElementById('eventTitle') as HTMLInputElement)?.value || ''
-    const description = (document.getElementById('eventDesc') as HTMLInputElement)?.value || ''
-    const start_time = (document.getElementById('eventStart') as HTMLInputElement)?.value || ''
-    const end_time = (document.getElementById('eventEnd') as HTMLInputElement)?.value || ''
-
-    if (!title || !start_time || !end_time) return
+    if (!eventForm.title) return
+    if (!eventForm.isAllDay && (!eventForm.startTime || !eventForm.endTime)) return
+    if (eventForm.isAllDay && !eventForm.eventDate) return
 
     try {
-      const res = await axios.post(`${serverUrl}/calendar`, 
-        { title, description, start_time, end_time },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
+      const payload: any = {
+        title: eventForm.title,
+        description: eventForm.description,
+        is_all_day: eventForm.isAllDay,
+      }
+
+      if (eventForm.isAllDay) {
+        payload.event_date = eventForm.eventDate
+        payload.start_time = null
+        payload.end_time = null
+      } else {
+        payload.start_time = eventForm.startTime
+        payload.end_time = eventForm.endTime
+        payload.event_date = null
+      }
+
+      if (eventForm.reminders.length > 0) {
+        payload.reminder_minutes = eventForm.reminders.join(',')
+      }
+
+      const res = await axios.post(`${serverUrl}/calendar`, payload, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
       setEvents([...events, res.data])
-      ;(document.getElementById('eventTitle') as HTMLInputElement).value = ''
-      ;(document.getElementById('eventDesc') as HTMLInputElement).value = ''
-      ;(document.getElementById('eventStart') as HTMLInputElement).value = ''
-      ;(document.getElementById('eventEnd') as HTMLInputElement).value = ''
+      setEventForm({
+        title: '',
+        description: '',
+        isAllDay: false,
+        eventDate: '',
+        startTime: '',
+        endTime: '',
+        reminders: []
+      })
       setStatus('Wydarzenie dodane!')
       setTimeout(() => setStatus(''), 2000)
     } catch (err: any) {
@@ -511,6 +578,13 @@ function App() {
                         <option key={color} value={color}>{NOTE_COLOR_NAMES[i]}</option>
                       ))}
                     </select>
+                    <button 
+                      className="btn-icon" 
+                      title={selectedNote.archived ? "Przywróć" : "Archiwizuj"} 
+                      onClick={() => updateNote(selectedNote.id, { archived: !selectedNote.archived })}
+                    >
+                      {selectedNote.archived ? '📂' : '📦'}
+                    </button>
                     <button className="btn-icon" onClick={() => duplicateNote(selectedNote)} title="Duplikuj">
                       📋
                     </button>
@@ -518,6 +592,18 @@ function App() {
                       🗑️
                     </button>
                   </div>
+                </div>
+                <div className="note-tags">
+                  <input
+                    type="text"
+                    placeholder="Tagi (oddzielone przecinkami)"
+                    value={selectedNote.tags || ''}
+                    onChange={(e) => updateNote(selectedNote.id, { tags: e.target.value })}
+                    className="tags-input"
+                  />
+                  {selectedNote.tags && selectedNote.tags.split(',').map((tag, idx) => (
+                    <span key={idx} className="tag-pill">{tag.trim()}</span>
+                  ))}
                 </div>
                 <textarea
                   className="note-content-input"
@@ -552,10 +638,71 @@ function App() {
 
             <div className="event-form">
               <h3>Dodaj wydarzenie</h3>
-              <input id="eventTitle" type="text" placeholder="Tytuł" />
-              <input id="eventDesc" type="text" placeholder="Opis" />
-              <input id="eventStart" type="datetime-local" />
-              <input id="eventEnd" type="datetime-local" />
+              <input 
+                type="text" 
+                placeholder="Tytuł" 
+                value={eventForm.title}
+                onChange={(e) => setEventForm({...eventForm, title: e.target.value})}
+              />
+              <input 
+                type="text" 
+                placeholder="Opis" 
+                value={eventForm.description}
+                onChange={(e) => setEventForm({...eventForm, description: e.target.value})}
+              />
+              
+              <label className="checkbox-label">
+                <input 
+                  type="checkbox" 
+                  checked={eventForm.isAllDay}
+                  onChange={(e) => setEventForm({...eventForm, isAllDay: e.target.checked})}
+                />
+                Wydarzenie na cały dzień
+              </label>
+
+              {eventForm.isAllDay ? (
+                <input 
+                  type="date" 
+                  value={eventForm.eventDate}
+                  onChange={(e) => setEventForm({...eventForm, eventDate: e.target.value})}
+                />
+              ) : (
+                <>
+                  <input 
+                    type="datetime-local" 
+                    value={eventForm.startTime}
+                    onChange={(e) => setEventForm({...eventForm, startTime: e.target.value})}
+                    placeholder="Data i czas rozpoczęcia"
+                  />
+                  <input 
+                    type="datetime-local" 
+                    value={eventForm.endTime}
+                    onChange={(e) => setEventForm({...eventForm, endTime: e.target.value})}
+                    placeholder="Data i czas zakończenia"
+                  />
+                </>
+              )}
+
+              <label>Przypomnienia (w minutach):</label>
+              <div className="reminder-checkboxes">
+                {[15, 60, 1440].map(mins => (
+                  <label key={mins} className="checkbox-label">
+                    <input 
+                      type="checkbox"
+                      checked={eventForm.reminders.includes(mins)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setEventForm({...eventForm, reminders: [...eventForm.reminders, mins]})
+                        } else {
+                          setEventForm({...eventForm, reminders: eventForm.reminders.filter(r => r !== mins)})
+                        }
+                      }}
+                    />
+                    {mins === 15 ? '15 minut' : mins === 60 ? '1 godzina' : '1 dzień'}
+                  </label>
+                ))}
+              </div>
+
               <button onClick={createEvent}>Dodaj</button>
             </div>
           </aside>
