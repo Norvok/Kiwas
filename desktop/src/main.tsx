@@ -89,6 +89,11 @@ function App() {
 
   useEffect(() => {
     getVersion().then(setAppVersion).catch(() => setAppVersion('unknown'))
+    
+    // Request notification permission on startup
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission().catch(err => console.error('Notification permission error:', err))
+    }
   }, [])
 
   useEffect(() => {
@@ -486,12 +491,29 @@ function App() {
 
   async function sendTestNotif() {
     try {
-      sendNotification({
-        title: 'Test powiadomienia',
-        body: 'Powiadomienia działają poprawnie! 🎉',
-      })
+      // Try to send notification directly first
+      try {
+        sendNotification({
+          title: 'Test powiadomienia',
+          body: 'Powiadomienia działają poprawnie! 🎉',
+        })
+        setStatus('✅ Powiadomienie wysłane!')
+        setTimeout(() => setStatus(''), 3000)
+      } catch (err: any) {
+        // If it fails, it might be a permissions issue
+        console.error('Direct notification failed:', err)
+        setStatus('⚠️ Spróbuj: Ustawienia > System > Powiadomienia > Zezwól notesapp na wysyłanie powiadomień')
+        
+        // Try alternative: open browser notification (if available)
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification('Test powiadomienia', {
+            body: 'Powiadomienia działają poprawnie! 🎉'
+          })
+        }
+      }
     } catch (err) {
       console.error('Notif error:', err)
+      setStatus('❌ Błąd powiadomienia')
     }
   }
 

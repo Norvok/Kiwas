@@ -4,6 +4,11 @@
   "description": "Default capabilities for the application",
   "windows": ["main"],
   "permissions": [
+    "notification:default",
+    "notification:allow-is-permission-granted",
+    "notification:allow-request-permission",
+    "notification:allow-send-notification",
+    "notification:allow-cancel",
     "updater:default",
     "updater:allow-check",
     "updater:allow-download",
